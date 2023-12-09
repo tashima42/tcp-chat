@@ -10,55 +10,51 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/tashima42/tcp-chat/types"
 )
 
-type (
-	errMsg error
-	newMsg struct {
-		username string
-		value    string
-	}
-)
+type errMsg error
 
 var (
-	focusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	blurredStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	noStyle      = lipgloss.NewStyle()
-	helpStyle    = blurredStyle.Copy()
+	blurredStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	senderStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
+	receiverStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#993322"))
+	titleStyle    = func() lipgloss.Style {
+		b := lipgloss.RoundedBorder()
+		b.Right = "├"
+		return lipgloss.NewStyle().BorderStyle(b).Padding(0, 1).Margin(0)
+	}()
+	sideStyle = func() lipgloss.Style {
+		b := lipgloss.NormalBorder()
+		return lipgloss.NewStyle().BorderStyle(b).Padding(0, 1)
+	}()
+	helpStyle = blurredStyle.Copy()
 )
 
 type model struct {
 	viewport      viewport.Model
 	messages      []string
+	users         map[string]types.User
 	registered    bool
 	usernameInput textinput.Model
-	textarea      textarea.Model
-	senderStyle   lipgloss.Style
+	messageInput  textinput.Model
+	viewportReady bool
+	height        int
 	conn          *net.Conn
 	err           error
 }
 
 func initialModel(conn *net.Conn) model {
-	ta := textarea.New()
-	ta.Placeholder = "Send a message..."
-	ta.Focus()
+	mi := textinput.New()
+	mi.Placeholder = "Send a message..."
+	mi.Focus()
 
-	ta.Prompt = "┃ "
-	ta.CharLimit = 280
+	mi.Prompt = "┃ "
+	mi.CharLimit = 560
 
-	ta.SetWidth(30)
-	ta.SetHeight(3)
-
-	// Remove cursor line styling
-	ta.FocusedStyle.CursorLine = lipgloss.NewStyle()
-
-	ta.ShowLineNumbers = false
-
-	vp := viewport.New(30, 5)
+	vp := viewport.New(100, 5)
 	vp.SetContent(`Welcome to the chat room!
 Type a message and press Enter to send.`)
-
-	ta.KeyMap.InsertNewline.SetEnabled(false)
 
 	ti := textinput.New()
 	ti.Placeholder = "Input your username"
@@ -67,19 +63,21 @@ Type a message and press Enter to send.`)
 	ti.Width = 20
 
 	return model{
-		textarea:      ta,
+		messageInput:  mi,
 		messages:      []string{},
+		users:         map[string]types.User{},
 		registered:    false,
 		usernameInput: ti,
 		viewport:      vp,
-		senderStyle:   lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
+		viewportReady: false,
+		height:        10,
 		conn:          conn,
 		err:           nil,
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return textarea.Blink
+	return tea.Batch(textarea.Blink, tea.EnterAltScreen)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -100,6 +98,23 @@ func updateRegister(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.registered = true
 			return m, nil
 		}
+
+	case tea.WindowSizeMsg:
+		headerHeight := lipgloss.Height(m.headerView())
+		footerHeight := lipgloss.Height(m.footerView())
+		verticalMarginHeight := headerHeight + footerHeight
+
+		if !m.viewportReady {
+			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
+			m.viewport.YPosition = headerHeight
+			m.viewport.HighPerformanceRendering = false
+			m.viewportReady = true
+			m.viewport.YPosition = headerHeight + 1
+			m.height = msg.Height
+		} else {
+			m.viewport.Width = msg.Width
+			m.viewport.Height = msg.Height - verticalMarginHeight
+		}
 	}
 
 	var cmd tea.Cmd
@@ -114,27 +129,36 @@ func updateChat(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 		vpCmd tea.Cmd
 	)
 
-	m.textarea, tiCmd = m.textarea.Update(msg)
+	m.messageInput, tiCmd = m.messageInput.Update(msg)
 	m.viewport, vpCmd = m.viewport.Update(msg)
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
-			fmt.Println(m.textarea.Value())
+			fmt.Println(m.messageInput.Value())
 			return m, tea.Quit
 		case tea.KeyEnter:
-			m.messages = append(m.messages, m.senderStyle.Render("[you]: ")+m.textarea.Value())
+			m.messages = append(m.messages, senderStyle.Render("[you]: ")+m.messageInput.Value())
 			m.viewport.SetContent(strings.Join(m.messages, "\n"))
-			sendMessage(*m.conn, m.textarea.Value())
-			m.textarea.Reset()
+			sendMessage(*m.conn, m.messageInput.Value())
+			m.messageInput.Reset()
 			m.viewport.GotoBottom()
 		}
-	case newMsg:
-		m.messages = append(m.messages, m.senderStyle.Render(fmt.Sprintf("[%s]: %s", msg.username, msg.value)))
+	case types.Users:
+		m.users = map[string]types.User{}
+		for _, u := range msg {
+			m.users[u.ID] = u
+		}
 		m.viewport.SetContent(strings.Join(m.messages, "\n"))
 		m.viewport.GotoBottom()
-
+		return m, nil
+	case types.Message:
+		user := m.users[msg.UserID]
+		m.messages = append(m.messages, receiverStyle.Render(fmt.Sprintf("[%s]: ", user.Username))+msg.Value)
+		m.viewport.SetContent(strings.Join(m.messages, "\n"))
+		m.viewport.GotoBottom()
+		return m, nil
 	case errMsg:
 		m.err = msg
 		return m, nil
@@ -151,11 +175,12 @@ func (m model) View() string {
 }
 
 func chatView(m model) string {
-	return fmt.Sprintf(
-		"%s\n\n%s",
-		m.viewport.View(),
-		m.textarea.View(),
-	) + "\n\n"
+	if !m.viewportReady {
+		return "\n  Initializing..."
+	}
+	chat := fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
+	return lipgloss.JoinHorizontal(lipgloss.Left, m.sideView(), chat)
+
 }
 
 func registerView(m model) string {
@@ -169,4 +194,26 @@ func registerView(m model) string {
 	b.WriteString(helpStyle.Render("press esc o ctrl+c to exit"))
 
 	return b.String()
+}
+
+func (m model) sideView() string {
+	users := ""
+	length := 0
+	for _, v := range m.users {
+		length++
+		users += fmt.Sprintf("%8.8s\n", v.Username)
+	}
+	return sideStyle.Height(m.height - length).Render(users)
+}
+
+func (m model) headerView() string {
+	title := titleStyle.Render("TCP Chat")
+	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(title)))
+	return lipgloss.JoinHorizontal(lipgloss.Center, title, line)
+}
+
+func (m model) footerView() string {
+	line := strings.Repeat("─", max(0, m.viewport.Width))
+	input := m.messageInput.View()
+	return lipgloss.JoinVertical(lipgloss.Left, line, input, line)
 }

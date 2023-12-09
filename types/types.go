@@ -1,10 +1,13 @@
 package types
 
+import "net"
+
 type ActionType int
 
 const (
 	ActionTypeRegister ActionType = 1
 	ActionTypeMessage  ActionType = 2
+	ActionTypeGetUsers ActionType = 3
 )
 
 //go:generate msgp
@@ -13,18 +16,28 @@ type Action struct {
 	Data []byte     //`msg:"data"`
 }
 
-type Register struct {
-	Username string //`msg:"username"`
+type User struct {
+	ID       string   //`msg:"id"`
+	Username string   //`msg:"username"`
+	conn     net.Conn //`msg:"-"`
+}
+type Users []User
+
+func NewUser(id, username string, conn net.Conn) User {
+	return User{
+		ID:       id,
+		Username: username,
+		conn:     conn,
+	}
 }
 
-type RegisterResponse struct {
-	ID string //`msg:"id"`
+func (u *User) GetConn() net.Conn {
+	return u.conn
 }
 
 type Message struct {
-	ID       string //`msg:"id"`
-	Username string //`msg:"username"`
-	Value    string //`msg:"value"`
+	UserID string //`msg:"userId"`
+	Value  string //`msg:"value"`
 }
 
 type ErrorMessage struct {

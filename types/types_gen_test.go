@@ -348,8 +348,8 @@ func BenchmarkDecodeMessage(b *testing.B) {
 	}
 }
 
-func TestMarshalUnmarshalRegister(t *testing.T) {
-	v := Register{}
+func TestMarshalUnmarshalUser(t *testing.T) {
+	v := User{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -371,8 +371,8 @@ func TestMarshalUnmarshalRegister(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgRegister(b *testing.B) {
-	v := Register{}
+func BenchmarkMarshalMsgUser(b *testing.B) {
+	v := User{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -380,8 +380,8 @@ func BenchmarkMarshalMsgRegister(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgRegister(b *testing.B) {
-	v := Register{}
+func BenchmarkAppendMsgUser(b *testing.B) {
+	v := User{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -392,8 +392,8 @@ func BenchmarkAppendMsgRegister(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalRegister(b *testing.B) {
-	v := Register{}
+func BenchmarkUnmarshalUser(b *testing.B) {
+	v := User{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -406,17 +406,17 @@ func BenchmarkUnmarshalRegister(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeRegister(t *testing.T) {
-	v := Register{}
+func TestEncodeDecodeUser(t *testing.T) {
+	v := User{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Log("WARNING: TestEncodeDecodeRegister Msgsize() is inaccurate")
+		t.Log("WARNING: TestEncodeDecodeUser Msgsize() is inaccurate")
 	}
 
-	vn := Register{}
+	vn := User{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -430,8 +430,8 @@ func TestEncodeDecodeRegister(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeRegister(b *testing.B) {
-	v := Register{}
+func BenchmarkEncodeUser(b *testing.B) {
+	v := User{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -444,8 +444,8 @@ func BenchmarkEncodeRegister(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeRegister(b *testing.B) {
-	v := Register{}
+func BenchmarkDecodeUser(b *testing.B) {
+	v := User{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -461,8 +461,8 @@ func BenchmarkDecodeRegister(b *testing.B) {
 	}
 }
 
-func TestMarshalUnmarshalRegisterResponse(t *testing.T) {
-	v := RegisterResponse{}
+func TestMarshalUnmarshalUsers(t *testing.T) {
+	v := Users{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -484,8 +484,8 @@ func TestMarshalUnmarshalRegisterResponse(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgRegisterResponse(b *testing.B) {
-	v := RegisterResponse{}
+func BenchmarkMarshalMsgUsers(b *testing.B) {
+	v := Users{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -493,8 +493,8 @@ func BenchmarkMarshalMsgRegisterResponse(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgRegisterResponse(b *testing.B) {
-	v := RegisterResponse{}
+func BenchmarkAppendMsgUsers(b *testing.B) {
+	v := Users{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -505,8 +505,8 @@ func BenchmarkAppendMsgRegisterResponse(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalRegisterResponse(b *testing.B) {
-	v := RegisterResponse{}
+func BenchmarkUnmarshalUsers(b *testing.B) {
+	v := Users{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -519,17 +519,17 @@ func BenchmarkUnmarshalRegisterResponse(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeRegisterResponse(t *testing.T) {
-	v := RegisterResponse{}
+func TestEncodeDecodeUsers(t *testing.T) {
+	v := Users{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Log("WARNING: TestEncodeDecodeRegisterResponse Msgsize() is inaccurate")
+		t.Log("WARNING: TestEncodeDecodeUsers Msgsize() is inaccurate")
 	}
 
-	vn := RegisterResponse{}
+	vn := Users{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -543,8 +543,8 @@ func TestEncodeDecodeRegisterResponse(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeRegisterResponse(b *testing.B) {
-	v := RegisterResponse{}
+func BenchmarkEncodeUsers(b *testing.B) {
+	v := Users{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -557,8 +557,8 @@ func BenchmarkEncodeRegisterResponse(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeRegisterResponse(b *testing.B) {
-	v := RegisterResponse{}
+func BenchmarkDecodeUsers(b *testing.B) {
+	v := Users{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))

@@ -15,11 +15,6 @@ const (
 	protocol = "tcp"
 )
 
-type user struct {
-	username string
-	conn     net.Conn
-}
-
 func Command() *cli.Command {
 	return &cli.Command{
 		Name:  "server",
@@ -48,6 +43,8 @@ func server(address string) error {
 	}
 	defer listen.Close()
 
+	users := map[string]types.User{}
+
 	var connMap = &sync.Map{}
 	for {
 		conn, err := listen.Accept()
@@ -55,22 +52,22 @@ func server(address string) error {
 			return err
 		}
 
-		id := uuid.New().String()
-		u := user{conn: conn, username: ""}
-		connMap.Store(id, conn)
+		u := types.NewUser(uuid.New().String(), "", conn)
+		connMap.Store(u.ID, conn)
 
-		go handleConnection(id, u, connMap)
+		go handleConnection(u, connMap, &users)
 	}
 }
 
-func handleConnection(id string, u user, connMap *sync.Map) {
+func handleConnection(u types.User, connMap *sync.Map, users *map[string]types.User) {
 	defer func() {
-		u.conn.Close()
-		connMap.Delete(id)
+		u.GetConn().Close()
+		delete((*users), u.ID)
+		connMap.Delete(u.ID)
 	}()
 
 	for {
-		input, err := bufio.NewReader(u.conn).ReadBytes('\n')
+		input, err := bufio.NewReader(u.GetConn()).ReadBytes('\n')
 		if err != nil {
 			log.Print("Error reading action: " + err.Error())
 			return
@@ -83,7 +80,7 @@ func handleConnection(id string, u user, connMap *sync.Map) {
 		}
 
 		actionType := types.ActionType(action.Type)
-		if actionType != types.ActionTypeRegister && u.username == "" {
+		if actionType != types.ActionTypeRegister && u.Username == "" {
 			errMsg := types.ErrorMessage{Value: "user must be registered before sending messages"}
 			var errB []byte
 			if _, err := errMsg.MarshalMsg(errB); err != nil {
@@ -91,7 +88,7 @@ func handleConnection(id string, u user, connMap *sync.Map) {
 				return
 			}
 			errB = append(errB, '\n')
-			if _, err := u.conn.Write(errB); err != nil {
+			if _, err := u.GetConn().Write(errB); err != nil {
 				log.Print("Failed to write error message: " + err.Error())
 				return
 			}
@@ -99,35 +96,51 @@ func handleConnection(id string, u user, connMap *sync.Map) {
 
 		switch actionType {
 		case types.ActionTypeRegister:
-			register := types.Register{}
-			if _, err = register.UnmarshalMsg(action.Data); err != nil {
+			user := types.User{}
+			if _, err = user.UnmarshalMsg(action.Data); err != nil {
 				log.Print("Error unmarshalling register: " + err.Error())
 				return
 			}
-			log.Println("Registering user: " + register.Username)
-			u.username = register.Username
+			log.Println("Registering user: " + user.Username)
+			u.Username = user.Username
+			user.ID = u.ID
+			(*users)[u.ID] = user
+			sendUsers := types.Users{}
+			for _, v := range *users {
+				sendUsers = append(sendUsers, v)
+			}
+			usersB, _ := sendUsers.MarshalMsg(nil)
+			sendActions(u.ID, connMap, types.ActionTypeGetUsers, usersB)
 		case types.ActionTypeMessage:
 			message := types.Message{}
 			if _, err = message.UnmarshalMsg(action.Data); err != nil {
 				log.Print("Error unmarshalling message: " + err.Error())
 				return
 			}
-			message.ID = id
-			message.Username = u.username
+			message.UserID = u.ID
 			messageB, _ := message.MarshalMsg(nil)
-			messageB = append(messageB, '\n')
 			log.Printf("Recieved message: %+v", message)
-			connMap.Range(func(key, value interface{}) bool {
-				if key == id {
-					return true
-				}
-				if conn, ok := value.(net.Conn); ok {
-					if _, err := conn.Write(messageB); err != nil {
-						log.Print("Error writing to connection " + err.Error())
-					}
-				}
-				return true
-			})
+			sendActions(u.ID, connMap, types.ActionTypeMessage, messageB)
 		}
 	}
+}
+
+func sendActions(id string, connMap *sync.Map, actionType types.ActionType, data []byte) {
+	action := types.Action{
+		Type: actionType,
+		Data: data,
+	}
+	actionB, _ := action.MarshalMsg(nil)
+	actionB = append(actionB, '\n')
+	connMap.Range(func(key, value interface{}) bool {
+		if key == id && actionType != types.ActionTypeGetUsers {
+			return true
+		}
+		if conn, ok := value.(net.Conn); ok {
+			if _, err := conn.Write(actionB); err != nil {
+				log.Print("Error writing to connection " + err.Error())
+			}
+		}
+		return true
+	})
 }

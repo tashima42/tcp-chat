@@ -37,7 +37,7 @@ func clientCommand(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	p := tea.NewProgram(initialModel(conn))
+	p := tea.NewProgram(initialModel(conn), tea.WithAltScreen())
 	go read(*conn, p)
 	if _, err := p.Run(); err != nil {
 		fmt.Println("Uh oh", err)
@@ -57,7 +57,7 @@ func wrapAction(actionType types.ActionType, data []byte) []byte {
 }
 
 func register(conn net.Conn, username string) {
-	registerMsg := types.Register{Username: username}
+	registerMsg := types.User{Username: username}
 	registerB, _ := registerMsg.MarshalMsg(nil)
 	actionB := wrapAction(types.ActionTypeRegister, registerB)
 	write(conn, actionB)
@@ -85,8 +85,17 @@ func write(conn net.Conn, content []byte) error {
 func read(conn net.Conn, p *tea.Program) {
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
-		msg := types.Message{}
-		msg.UnmarshalMsg(scanner.Bytes())
-		p.Send(newMsg{username: msg.Username, value: msg.Value})
+		action := types.Action{}
+		action.UnmarshalMsg(scanner.Bytes())
+		switch types.ActionType(action.Type) {
+		case types.ActionTypeMessage:
+			msg := types.Message{}
+			msg.UnmarshalMsg(action.Data)
+			p.Send(msg)
+		case types.ActionTypeGetUsers:
+			users := types.Users{}
+			users.UnmarshalMsg(action.Data)
+			p.Send(users)
+		}
 	}
 }
