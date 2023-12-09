@@ -19,7 +19,7 @@ type errMsg error
 var (
 	blurredStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	senderStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
-	receiverStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#993322"))
+	receiverStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("4"))
 	titleStyle    = func() lipgloss.Style {
 		b := lipgloss.RoundedBorder()
 		b.Right = "├"
