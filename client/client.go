@@ -37,7 +37,7 @@ func clientCommand(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	p := tea.NewProgram(initialModel(conn), tea.WithAltScreen())
+	p := tea.NewProgram(initialModel(conn), tea.WithAltScreen(), tea.WithMouseCellMotion())
 	go read(*conn, p)
 	if _, err := p.Run(); err != nil {
 		fmt.Println("Uh oh", err)

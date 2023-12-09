@@ -36,6 +36,7 @@ type model struct {
 	viewport      viewport.Model
 	messages      []string
 	users         map[string]types.User
+	usersLength   int
 	registered    bool
 	usernameInput textinput.Model
 	messageInput  textinput.Model
@@ -67,6 +68,7 @@ Type a message and press Enter to send.`)
 		messageInput:  mi,
 		messages:      []string{},
 		users:         map[string]types.User{},
+		usersLength:   0,
 		registered:    false,
 		usernameInput: ti,
 		viewport:      vp,
@@ -104,6 +106,7 @@ func updateRegister(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 		headerHeight := lipgloss.Height(m.headerView())
 		footerHeight := lipgloss.Height(m.footerView())
 		verticalMarginHeight := headerHeight + footerHeight
+		m.height = msg.Height
 
 		if !m.viewportReady {
 			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
@@ -111,7 +114,6 @@ func updateRegister(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport.HighPerformanceRendering = false
 			m.viewportReady = true
 			m.viewport.YPosition = headerHeight + 1
-			m.height = msg.Height
 		} else {
 			m.viewport.Width = msg.Width
 			m.viewport.Height = msg.Height - verticalMarginHeight
@@ -148,6 +150,7 @@ func updateChat(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case types.Users:
 		m.users = map[string]types.User{}
+		m.usersLength = len(msg)
 		for _, u := range msg {
 			m.users[u.ID] = u
 		}
@@ -180,7 +183,7 @@ func chatView(m model) string {
 		return "\n  Initializing..."
 	}
 	chat := fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
-	return lipgloss.JoinHorizontal(lipgloss.Left, m.sideView(), chat)
+	return lipgloss.JoinHorizontal(lipgloss.Top, m.sideView(), chat)
 
 }
 
@@ -199,14 +202,13 @@ func registerView(m model) string {
 
 func (m model) sideView() string {
 	users := []string{}
-	length := 0
 	for _, v := range m.users {
-		length++
 		users = append(users, v.Username)
 	}
+	usersList := ""
 	slices.Sort(users)
-	usersList := strings.Join(users, "\n")
-	return sideStyle.Height(m.height - length).Render(usersList)
+	usersList = strings.Join(users, "\n")
+	return sideStyle.MaxHeight(m.height).Height(m.height - m.usersLength).Render(usersList)
 }
 
 func (m model) headerView() string {
