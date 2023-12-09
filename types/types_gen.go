@@ -25,10 +25,14 @@ func (z *Action) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Type":
-			z.Type, err = dc.ReadInt()
-			if err != nil {
-				err = msgp.WrapError(err, "Type")
-				return
+			{
+				var zb0002 int
+				zb0002, err = dc.ReadInt()
+				if err != nil {
+					err = msgp.WrapError(err, "Type")
+					return
+				}
+				z.Type = ActionType(zb0002)
 			}
 		case "Data":
 			z.Data, err = dc.ReadBytes(z.Data)
@@ -55,7 +59,7 @@ func (z *Action) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.Type)
+	err = en.WriteInt(int(z.Type))
 	if err != nil {
 		err = msgp.WrapError(err, "Type")
 		return
@@ -79,7 +83,7 @@ func (z *Action) MarshalMsg(b []byte) (o []byte, err error) {
 	// map header, size 2
 	// string "Type"
 	o = append(o, 0x82, 0xa4, 0x54, 0x79, 0x70, 0x65)
-	o = msgp.AppendInt(o, z.Type)
+	o = msgp.AppendInt(o, int(z.Type))
 	// string "Data"
 	o = append(o, 0xa4, 0x44, 0x61, 0x74, 0x61)
 	o = msgp.AppendBytes(o, z.Data)
@@ -105,10 +109,14 @@ func (z *Action) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Type":
-			z.Type, bts, err = msgp.ReadIntBytes(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "Type")
-				return
+			{
+				var zb0002 int
+				zb0002, bts, err = msgp.ReadIntBytes(bts)
+				if err != nil {
+					err = msgp.WrapError(err, "Type")
+					return
+				}
+				z.Type = ActionType(zb0002)
 			}
 		case "Data":
 			z.Data, bts, err = msgp.ReadBytesBytes(bts, z.Data)

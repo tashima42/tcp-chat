@@ -7,6 +7,7 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/tashima42/tcp-chat/types"
 	"github.com/urfave/cli/v2"
 )
 
@@ -46,13 +47,36 @@ func clientCommand(ctx *cli.Context) error {
 	return nil
 }
 
+func wrapAction(actionType types.ActionType, data []byte) []byte {
+	action := types.Action{
+		Type: actionType,
+		Data: data,
+	}
+	actionB, _ := action.MarshalMsg(nil)
+	return actionB
+}
+
+func register(conn net.Conn, username string) {
+	registerMsg := types.Register{Username: username}
+	registerB, _ := registerMsg.MarshalMsg(nil)
+	actionB := wrapAction(types.ActionTypeRegister, registerB)
+	write(conn, actionB)
+}
+func sendMessage(conn net.Conn, value string) {
+	msg := types.Message{Value: value}
+	msgB, _ := msg.MarshalMsg(nil)
+	actionB := wrapAction(types.ActionTypeMessage, msgB)
+	write(conn, actionB)
+}
+
 func connect(address string) (*net.Conn, error) {
 	conn, err := net.Dial(protocol, address)
 	return &conn, err
 }
 
-func write(conn net.Conn, message string) error {
-	if _, err := conn.Write([]byte(message + "\n")); err != nil {
+func write(conn net.Conn, content []byte) error {
+	content = append(content, '\n')
+	if _, err := conn.Write(content); err != nil {
 		return err
 	}
 	return nil
@@ -61,6 +85,8 @@ func write(conn net.Conn, message string) error {
 func read(conn net.Conn, p *tea.Program) {
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
-		p.Send(newMsg{value: scanner.Text()})
+		msg := types.Message{}
+		msg.UnmarshalMsg(scanner.Bytes())
+		p.Send(newMsg{username: msg.Username, value: msg.Value})
 	}
 }

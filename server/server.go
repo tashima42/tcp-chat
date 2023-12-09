@@ -77,8 +77,7 @@ func handleConnection(id string, u user, connMap *sync.Map) {
 		}
 
 		action := types.Action{}
-		_, err = action.UnmarshalMsg(input)
-		if err != nil {
+		if _, err = action.UnmarshalMsg(input); err != nil {
 			log.Print("Error unmarshalling action: " + err.Error())
 			return
 		}
@@ -89,29 +88,46 @@ func handleConnection(id string, u user, connMap *sync.Map) {
 			var errB []byte
 			if _, err := errMsg.MarshalMsg(errB); err != nil {
 				log.Print("Failed to marshall error message: " + err.Error())
+				return
 			}
+			errB = append(errB, '\n')
 			if _, err := u.conn.Write(errB); err != nil {
-
+				log.Print("Failed to write error message: " + err.Error())
+				return
 			}
 		}
 
 		switch actionType {
 		case types.ActionTypeRegister:
-
+			register := types.Register{}
+			if _, err = register.UnmarshalMsg(action.Data); err != nil {
+				log.Print("Error unmarshalling register: " + err.Error())
+				return
+			}
+			log.Println("Registering user: " + register.Username)
+			u.username = register.Username
 		case types.ActionTypeMessage:
-		}
-
-		connMap.Range(func(key, value interface{}) bool {
-			if key == id {
-				return true
+			message := types.Message{}
+			if _, err = message.UnmarshalMsg(action.Data); err != nil {
+				log.Print("Error unmarshalling message: " + err.Error())
+				return
 			}
-			if conn, ok := value.(net.Conn); ok {
-				log.Printf("[%s]: %s", id, input)
-				if _, err := conn.Write([]byte(input)); err != nil {
-					log.Print("Error writing to connection " + err.Error())
+			message.ID = id
+			message.Username = u.username
+			messageB, _ := message.MarshalMsg(nil)
+			messageB = append(messageB, '\n')
+			log.Printf("Recieved message: %+v", message)
+			connMap.Range(func(key, value interface{}) bool {
+				if key == id {
+					return true
 				}
-			}
-			return true
-		})
+				if conn, ok := value.(net.Conn); ok {
+					if _, err := conn.Write(messageB); err != nil {
+						log.Print("Error writing to connection " + err.Error())
+					}
+				}
+				return true
+			})
+		}
 	}
 }

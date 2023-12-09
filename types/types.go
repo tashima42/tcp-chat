@@ -9,8 +9,8 @@ const (
 
 //go:generate msgp
 type Action struct {
-	Type int    //`msg:"type"`
-	Data []byte //`msg:"data"`
+	Type ActionType //`msg:"type"`
+	Data []byte     //`msg:"data"`
 }
 
 type Register struct {
