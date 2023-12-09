@@ -1,5 +1,3 @@
 {
-  "postAttachCommand": {
-    "server": "go build"
-  }
+  "onCreateCommand": "go build"
 }
