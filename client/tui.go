@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 	"net"
+	"slices"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
@@ -197,13 +198,15 @@ func registerView(m model) string {
 }
 
 func (m model) sideView() string {
-	users := ""
+	users := []string{}
 	length := 0
 	for _, v := range m.users {
 		length++
-		users += fmt.Sprintf("%8.8s\n", v.Username)
+		users = append(users, v.Username)
 	}
-	return sideStyle.Height(m.height - length).Render(users)
+	slices.Sort(users)
+	usersList := strings.Join(users, "\n")
+	return sideStyle.Height(m.height - length).Render(usersList)
 }
 
 func (m model) headerView() string {
