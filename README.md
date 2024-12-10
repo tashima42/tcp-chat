@@ -1,4 +1,6 @@
 # tcp-chat
+[![build result](https://build.opensuse.org/projects/home:ptashima/packages/tcp-chat/badge.svg?type=default)](https://build.opensuse.org/package/show/home:ptashima/tcp-chat)
+
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Tashima42/tcp-chat)
 
 ```bash
