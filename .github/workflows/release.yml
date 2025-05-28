@@ -1,0 +1,27 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Build and push all image variations
+      uses: tashima42/ecm-distro-tools/actions/publish-image@add-sign-container-identity-option
+      with:
+        image: tcp-chat
+        tag: ${{ github.ref_name }}
+        platforms: ${{ matrix.platforms }}
+
+        public-registry: docker.io
+        public-repo: tashima42
+        public-username: ${{ env.DOCKER_USERNAME }}
+        public-password: ${{ env.DOCKER_PASSWORD }}
+
+        prime-registry: quay.io
+        prime-repo: tashima42
+        prime-username: ${{ env.PRIME_USERNAME }}
+        prime-password: ${{ env.PRIME_PASSWORD }}
