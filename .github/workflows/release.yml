@@ -15,6 +15,7 @@ jobs:
         image: tcp-chat
         tag: ${{ github.ref_name }}
         platforms: ${{ matrix.platforms }}
+        identity-registry: "ghcr.io"
 
         public-registry: docker.io
         public-repo: tashima42
