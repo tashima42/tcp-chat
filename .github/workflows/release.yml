@@ -18,10 +18,10 @@ jobs:
 
         public-registry: docker.io
         public-repo: tashima42
-        public-username: ${{ env.DOCKER_USERNAME }}
-        public-password: ${{ env.DOCKER_PASSWORD }}
+        public-username: ${{ secrets.DOCKER_USERNAME }}
+        public-password: ${{ secrets.DOCKER_PASSWORD }}
 
         prime-registry: quay.io
         prime-repo: tashima42
-        prime-username: ${{ env.PRIME_USERNAME }}
-        prime-password: ${{ env.PRIME_PASSWORD }}
+        prime-username: ${{ secrets.PRIME_USERNAME }}
+        prime-password: ${{ secrets.PRIME_PASSWORD }}
