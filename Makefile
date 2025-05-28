@@ -1,6 +1,5 @@
-REGISTRY ?= docker.io
 REPO ?= tashima42
-IMAGE = $(REGISTRY)/$(REPO)/tcp-chat:$(TAG)
+IMAGE = $(REPO)/tcp-chat:$(TAG)
 BUILD_ACTION = --load
 RUNNER := docker
 IMAGE_BUILDER := $(RUNNER) buildx
