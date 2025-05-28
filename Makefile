@@ -12,6 +12,6 @@ buildx-machine: ## create rancher dockerbuildx machine targeting platform define
 
 push-image: buildx-machine ## build the container image targeting all platforms defined by TARGET_PLATFORMS and push to a registry.
 	$(IMAGE_BUILDER) build -f Dockerfile \
-		--builder $(MACHINE) $(BUILDX_ARGS) \
+		--builder $(MACHINE) $(IID_FILE_FLAG) $(BUILDX_ARGS) \
 		-t "$(IMAGE)" --push .
 	@echo "Pushed $(IMAGE)"
